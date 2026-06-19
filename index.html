@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Cheminement du Topo - Jeu de Plateau</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f1f5f9; /* Fond beaucoup plus clair */
+            color: #1e293b;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        h1 { color: #d97706; font-size: 2rem; }
+        .rules { color: #64748b; font-size: 0.9rem; margin-top: 5px; }
+
+        /* Le Plateau de Jeu */
+        .board-container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .board-title {
+            color: #0284c7;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .board {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 25px 20px;
+            border-radius: 8px;
+            position: relative;
+            min-height: 130px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .board::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            right: 50px;
+            height: 6px;
+            background: #cbd5e1;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .case {
+            width: 65px;
+            height: 65px;
+            background: #e2e8f0;
+            border: 3px solid #94a3b8;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .case-label { font-size: 0.75rem; color: #475569; margin-top: -2px; }
+        .case-alt { font-size: 0.65rem; color: #059669; font-weight: bold; }
+
+        .case.active {
+            border-color: #d97706;
+            background: #fef3c7;
+            box-shadow: 0 0 15px rgba(217, 119, 6, 0.3);
+            transform: scale(1.1);
+        }
+
+        .case.completed {
+            border-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .player-token {
+            position: absolute;
+            top: -20px;
+            font-size: 1.7rem;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-6px); }
+        }
+
+        /* Zone de Jeu Active */
+        .game-interface {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .game-interface { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            color: #b45309;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
+            font-weight: bold;
+        }
+
+        /* Section Visuelle Chantier */
+        .field-view {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            background: linear-gradient(to top, #e2f0d9, #f8fafc);
+            height: 180px;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .level-instrument {
+            font-size: 2.5rem;
+            position: absolute;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+        }
+
+        .mire {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #ffffff;
+            color: #000;
+            width: 25px;
+            height: 130px;
+            border: 2px solid #000;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.7rem;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-top-right-radius: 4px;
+            border-top-left-radius: 4px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .mire.back { border-left: 4px solid #0284c7; }
+        .mire.forward { border-right: 4px solid #ef4444; }
+
+        .mire-caption {
+            font-size: 0.8rem;
+            color: #475569;
+            text-align: center;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* Formulaires */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-display {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #0284c7;
+            font-weight: bold;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            color: #1e293b;
+            font-size: 1.1rem;
+            font-family: monospace;
+        }
+
+        input[type="number"]:focus {
+            border-color: #d97706;
+            outline: none;
+            background: #fffdfa;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #d97706;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 4px rgba(217,119,6,0.2);
+        }
+
+        .btn:hover { background: #b45309; }
+        .btn:disabled { background: #94a3b8; color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+
+        .btn-secondary {
+            background: #64748b;
+            margin-top: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-secondary:hover { background: #475569; }
+
+        /* Journal de bord */
+        .log-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #0f172a;
+        }
+
+        .log-entry { margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📐 Le Cheminement du Topo</h1>
+        <p class="rules">Calculez correctement les dénivelées pour faire avancer votre pion jusqu'au repère final !</p>
+    </header>
+
+    <div class="board-container">
+        <div class="board-title">📍 Profil du cheminement altimétrique (Aléatoire)</div>
+        <div class="board" id="gameBoard">
+            </div>
+    </div>
+
+    <div class="game-interface">
+        <div class="panel">
+            <div class="panel-title">👀 Visée actuelle (Stationnement du Niveau)</div>
+            
+            <div class="field-view">
+                <div>
+                    <div class="mire back"><div>4</div><div>3</div><div>2</div><div>1</div></div>
+                    <div class="mire-caption" id="mireBackName">Point A</div>
+                </div>
+                
+                <div class="level-instrument">🔍🔬</div>
+                
+                <div>
+                    <div class="mire forward"><div>4</div><div>3</div><div>2</div><div>1</div></div>
+                    <div class="mire-caption" id="mireForwardName">Point B</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label>Lecture Arrière (Ar)</label>
+                    <div class="input-display" id="readAr">-,--- m</div>
+                </div>
+                <div class="form-group">
+                    <label>Lecture Avant (Av)</label>
+                    <div class="input-display" id="readAv">-,--- m</div>
+                </div>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; font-style: italic;">Note : Les mires mesurent de 0,000m à 4,000m de haut.</p>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">✍️ Carnet de Nivellement & Calculs</div>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem;">
+                Altitude de départ (<span id="currentPointName">A</span>) : <strong style="color:#059669;"><span id="currentPointAlt">100.000</span> m</strong>
+            </div>
+
+            <div class="form-group">
+                <label>1. Calculez la dénivelée &Delta;H (en mètres) : <br><small style="color: #64748b;">Formule : &Delta;H = Lect. Ar - Lect. Av</small></label>
+                <input type="number" step="0.001" id="inputDeltaH" placeholder="Ex: 0.415 ou -0.210">
+            </div>
+
+            <div class="form-group">
+                <label>2. Déduisez l'altitude du point suivant (en mètres) : <br><small style="color: #64748b;">Formule : H_suivant = H_actuel + &Delta;H</small></label>
+                <input type="number" step="0.001" id="inputAlt" placeholder="Ex: 100.415">
+            </div>
+
+            <button class="btn" id="submitBtn" onclick="checkCalculations()">Valider la station</button>
+            <button class="btn btn-secondary" onclick="initGame()">🔄 Réinitialiser le chantier</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">📜 Journal du Géomètre</div>
+        <div class="log-box" id="logBox">
+            </div>
+    </div>
+</div>
+
+<script>
+    // Structure de base des points du plateau
+    let boardPoints = [];
+    let currentStep = 0; 
+    let currentStationData = {};
+
+    // Fonction pour générer un tout nouveau chantier aléatoire
+    function generateRandomChantier() {
+        // 1. Altitude de départ aléatoire entre 50.000m et 250.000m, arrondie au cm près
+        const startAlt = Math.round((50 + Math.random() * 200) * 100) / 100;
+
+        boardPoints = [
+            { name: "RN1", alt: startAlt, realAlt: startAlt },
+            { name: "P1", alt: null, realAlt: 0 },
+            { name: "P2", alt: null, realAlt: 0 },
+            { name: "P3", alt: null, realAlt: 0 },
+            { name: "P4", alt: null, realAlt: 0 },
+            { name: "RN2", alt: null, realAlt: 0 }
+        ];
+
+        // 2. Générer des dénivelées cumulées réalistes (entre -1.8m et +1.8m par rapport au point précédent)
+        // pour garantir que les calculs de mire restent toujours valides entre 0.000m et 4.000m.
+        for(let i = 1; i < boardPoints.length; i++) {
+            const randomDelta = Math.round((-1.8 + Math.random() * 3.6) * 1000) / 1000;
+            boardPoints[i].realAlt = Math.round((boardPoints[i-1].realAlt + randomDelta) * 1000) / 1000;
+        }
+    }
+
+    function initGame() {
+        currentStep = 0;
+        document.getElementById('submitBtn').disabled = false;
+        
+        // Génération du nouveau profil de terrain
+        generateRandomChantier();
+        
+        // Reset du journal de bord
+        const logBox = document.getElementById('logBox');
+        logBox.innerHTML = `<div class="log-entry">Nouveau chantier initialisé. Altitude du repère de départ RN1 fixée à <strong>${boardPoints[0].realAlt.toFixed(3)} m</strong>.</div>`;
+
+        renderBoard();
+        generateStationData();
+    }
+
+    function renderBoard() {
+        const boardHtml = document.getElementById('gameBoard');
+        boardHtml.innerHTML = '';
+
+        boardPoints.forEach((point, index) => {
+            const caseDiv = document.createElement('div');
+            caseDiv.className = `case ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`;
+            
+            let token = '';
+            if (index === currentStep) {
+                token = `<div class="player-token">👷‍♂️</div>`;
+            }
+
+            // Affichage de l'altitude si découverte ou calculée, sinon masquée
+            const altDisplay = (index === 0 || point.alt !== null) ? `${point.realAlt.toFixed(3)}m` : '???';
+
+            caseDiv.innerHTML = `
+                ${token}
+                <span class="case-label">${point.name}</span>
+                <span class="case-alt">${altDisplay}</span>
+            `;
+            boardHtml.appendChild(caseDiv);
+        });
+    }
+
+    function generateStationData() {
+        if (currentStep >= boardPoints.length - 1) {
+            endGame();
+            return;
+        }
+
+        const currentPoint = boardPoints[currentStep];
+        const nextPoint = boardPoints[currentStep + 1];
+
+        // DeltaH = Ar - Av
+        const realDeltaH = nextPoint.realAlt - currentPoint.realAlt;
+
+        const mireMin = 0.000;
+        const mireMax = 4.000;
+
+        let minAr = mireMin;
+        let maxAr = mireMax;
+
+        // Sécurisation stricte des lectures [0, 4] mètres
+        if (realDeltaH > 0) {
+            minAr = realDeltaH;
+        } else {
+            maxAr = mireMax + realDeltaH;
+        }
+
+        minAr = Math.max(mireMin + 0.1, minAr);
+        maxAr = Math.min(mireMax - 0.1, maxAr);
+
+        const readAr = minAr + Math.random() * (maxAr - minAr);
+        const readAv = readAr - realDeltaH;
+
+        currentStationData = {
+            fromPoint: currentPoint,
+            toPoint: nextPoint,
+            ar: Math.round(readAr * 1000) / 1000,
+            av: Math.round(readAv * 1000) / 1000,
+            deltaH: Math.round(realDeltaH * 1000) / 1000,
+            targetAlt: Math.round(nextPoint.realAlt * 1000) / 1000
+        };
+
+        document.getElementById('mireBackName').textContent = currentPoint.name;
+        document.getElementById('mireForwardName').textContent = nextPoint.name;
+        document.getElementById('currentPointName').textContent = currentPoint.name;
+        document.getElementById('currentPointAlt').textContent = currentPoint.realAlt.toFixed(3);
+
+        document.getElementById('readAr').textContent = currentStationData.ar.toFixed(3) + " m";
+        document.getElementById('readAv').textContent = currentStationData.av.toFixed(3) + " m";
+
+        document.getElementById('inputDeltaH').value = '';
+        document.getElementById('inputAlt').value = '';
+    }
+
+    function checkCalculations() {
+        const userDeltaH = parseFloat(document.getElementById('inputDeltaH').value);
+        const userAlt = parseFloat(document.getElementById('inputAlt').value);
+
+        if (isNaN(userDeltaH) || isNaN(userAlt)) {
+            alert("Veuillez remplir les deux champs de calcul.");
+            return;
+        }
+
+        // Tolérance d'arrondi
+        const isDeltaHCorrect = Math.abs(userDeltaH - currentStationData.deltaH) <= 0.002;
+        const isAltCorrect = Math.abs(userAlt - currentStationData.targetAlt) <= 0.002;
+
+        const logBox = document.getElementById('logBox');
+
+        if (isDeltaHCorrect && isAltCorrect) {
+            boardPoints[currentStep + 1].alt = currentStationData.targetAlt;
+
+            logBox.innerHTML += `
+                <div class="log-entry" style="color: #059669; font-weight: 500;">
+                    ✅ Station ${currentStep + 1} validée ! [${currentStationData.fromPoint.name} ➔ ${currentStationData.toPoint.name}] <br>
+                    Lectures : Ar = ${currentStationData.ar.toFixed(3)}m | Av = ${currentStationData.av.toFixed(3)}m <br>
+                    &Delta;H = ${userDeltaH.toFixed(3)}m | Altitude trouvée = ${userAlt.toFixed(3)}m.
+                </div>
+            `;
+
+            currentStep++;
+            renderBoard();
+            generateStationData();
+        } else {
+            let errorMsg = "❌ Erreur dans le carnet ! Vérifiez vos calculs de la station.<br>";
+            if (!isDeltaHCorrect) errorMsg += `• Dénivelée erronée (${userDeltaH.toFixed(3)}m saisi, attendu: Ar - Av).<br>`;
+            if (!isAltCorrect) errorMsg += `• Altitude erronée (${userAlt.toFixed(3)}m saisi, attendu: Alt. Précédente + &Delta;H).`;
+            
+            logBox.innerHTML += `<div class="log-entry" style="color: #dc2626;">${errorMsg}</div>`;
+        }
+        
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function endGame() {
+        document.getElementById('submitBtn').disabled = true;
+        const logBox = document.getElementById('logBox');
+        logBox.innerHTML += `
+            <div class="log-entry" style="color: #b45309; font-size: 1.1rem; font-weight: bold; margin-top: 10px; border: 1px solid #f59e0b; padding: 10px; background: #fffdfa; border-radius: 6px;">
+                🏆 Bravo ! Vous avez fermé votre nivellement avec succès sur le repère RN2 (${boardPoints[boardPoints.length-1].realAlt.toFixed(3)} m). Le carnet est entièrement validé ! Cliquez sur "Réinitialiser" pour un nouveau tracé géologique.
+            </div>
+        `;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
